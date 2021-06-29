@@ -1,0 +1,80 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+data=pd.read_csv('dataset_phishing.csv')
+
+data.drop(labels='url',inplace=True,axis=1)
+
+from sklearn import preprocessing
+label = preprocessing.LabelEncoder()
+
+data['status']= label.fit_transform(data['status'])
+target=data['status']
+cols=np.array(data.columns)
+#print(pd.options.display.max_rows)
+#pd.options.display.max_rows=999
+#print(data.isna().sum())
+#print(data.duplicated().sum())
+data.drop_duplicates(inplace=True)
+#print(data.duplicated().sum())
+for i in range(11,88,11):
+    break
+    temp_data=data.loc[:,cols[i-11:i]]
+    temp_data=temp_data.join(target)
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(temp_data.corr(), annot=True)
+    plt.show()
+
+def show_data(chunk):
+    #fig = plt.figure(figsize=(8, 6))
+    #fig.subplots_adjust(hspace=0.4, wspace=0.4)
+    #ax = fig.add_subplot(3, 3, 1)
+    sns.distplot(chunk, hist_kws=dict(edgecolor='k', linewidth=1), bins=10)
+    plt.show()
+    return 0
+#print(data.isna().sum())
+for i in range(len(data.columns)):
+    break
+    show_data(data[f'{data.columns[i]}'])
+
+#VERY LOW CORR VALUES : 'nb_or','ratio_nullHyperlinks','ratio_intRedirection','ratio_intErrors','submit_email','sfh'
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler,MinMaxScaler
+
+X=data.drop(labels='status',axis=1)
+X=X.drop(labels=['nb_or','ratio_nullHyperlinks','ratio_intRedirection','ratio_intErrors','submit_email','sfh'],axis=1)
+Y=data['status']
+X_train, X_test, y_train, y_test=train_test_split(X,Y,test_size=0.2,shuffle=True,random_state=0)
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from catboost import CatBoostClassifier
+from sklearn.ensemble import RandomForestClassifier,AdaBoostClassifier
+sc=StandardScaler()
+X_train=sc.fit_transform(X_train)
+X_test=sc.fit_transform(X_test)
+from sklearn.metrics import accuracy_score
+def show_model(model):
+    model.fit(X_train,y_train)
+    prediction = model.predict(X_test)
+    pred_train = model.predict(X_train)
+    test_accuracy=accuracy_score(y_test,prediction)
+    train_accuracy = accuracy_score(y_train, pred_train)
+    return test_accuracy,train_accuracy
+
+results=[]
+results.append(show_model(LogisticRegression()))
+results.append(show_model(KNeighborsClassifier()))
+results.append(show_model(CatBoostClassifier(iterations=100,random_state=0,verbose=1,task_type="GPU", max_depth=6)))
+results.append(show_model(RandomForestClassifier()))
+results.append(show_model(AdaBoostClassifier()))
+#print(show_model(LogisticRegression()))
+#print(show_model(KNeighborsClassifier()))
+#print(show_model(CatBoostClassifier(iterations=100,random_state=42,verbose=1,task_type="GPU", max_depth=6)))
+#print(show_model(RandomForestClassifier()))
+#print(show_model(AdaBoostClassifier()))
+
+print(results)
+
+#(0.9671403197158082, 0.9890048867170147), (0.9644760213143873, 1.0)
